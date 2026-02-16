@@ -17,10 +17,8 @@ Translation files are located in:
 src/i18n/locales/
 ├── en/
 │   └── translation.json    # English (source)
-├── vi/
-│   └── translation.json    # Vietnamese
-├── fr/
-│   └── translation.json    # French
+├── dv/
+│   └── translation.json    # Dhivehi (ދިވެހި)
 └── [your-language]/
     └── translation.json    # Your contribution!
 ```
@@ -37,12 +35,9 @@ mkdir src/i18n/locales/[language-code]
 
 Examples:
 
+- `dv` for Dhivehi
 - `de` for German
-- `es` for Spanish
 - `ja` for Japanese
-- `zh` for Chinese
-- `ko` for Korean
-- `pt` for Portuguese
 
 ### Step 2: Copy the English File
 
@@ -77,12 +72,10 @@ Edit `src/i18n/languages.ts` and add your language metadata:
 ```typescript
 export const LANGUAGE_METADATA: Record<
   string,
-  { name: string; nativeName: string }
+  { name: string; nativeName: string; priority?: number; direction?: "ltr" | "rtl" }
 > = {
-  en: { name: "English", nativeName: "English" },
-  es: { name: "Spanish", nativeName: "Español" },
-  fr: { name: "French", nativeName: "Français" },
-  vi: { name: "Vietnamese", nativeName: "Tiếng Việt" },
+  en: { name: "English", nativeName: "English", priority: 1 },
+  dv: { name: "Dhivehi", nativeName: "ދިވެހި", priority: 2, direction: "rtl" },
   de: { name: "German", nativeName: "Deutsch" }, // ← Add your language
 };
 ```
@@ -151,23 +144,10 @@ Some languages have complex plural rules. For now, use a general form that works
 
 ## Currently Supported Languages
 
-| Language   | Code | Status            |
-| ---------- | ---- | ----------------- |
-| English    | `en` | Complete (source) |
-| Chinese    | `zh` | Complete          |
-| French     | `fr` | Complete          |
-| German     | `de` | Complete          |
-| Japanese   | `ja` | Complete          |
-| Spanish    | `es` | Complete          |
-| Vietnamese | `vi` | Complete          |
-
-## Requested Languages
-
-We'd love help with:
-
-- Korean (`ko`)
-- Portuguese (`pt`)
-- And more!
+| Language | Code | Status            |
+| -------- | ---- | ----------------- |
+| English  | `en` | Complete (source) |
+| Dhivehi  | `dv` | Complete (RTL)    |
 
 ---
 
