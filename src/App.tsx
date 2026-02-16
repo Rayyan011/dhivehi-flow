@@ -36,6 +36,9 @@ function App() {
     useState<SidebarSection>("general");
   const { settings, updateSetting } = useSettings();
   const direction = getLanguageDirection(i18n.language);
+  const appFontFamily = i18n.language.toLowerCase().startsWith("dv")
+    ? '"Faruma", "Noto Sans Thaana", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    : undefined;
   const refreshAudioDevices = useSettingsStore(
     (state) => state.refreshAudioDevices,
   );
@@ -95,6 +98,11 @@ function App() {
 
   const checkOnboardingStatus = async () => {
     try {
+      const isMacOS = platform() === "macos";
+      // In Tauri dev mode on macOS, accessibility permission tracking can be unreliable.
+      // Skip the startup gate so development is not blocked.
+      const skipPermissionOnboarding = isMacOS && import.meta.env.DEV;
+
       // Check if they have any models available
       const result = await commands.hasAnyModelsAvailable();
       const hasModels = result.status === "ok" && result.data;
@@ -102,7 +110,7 @@ function App() {
       if (hasModels) {
         // Returning user - but check if they need to grant permissions on macOS
         setIsReturningUser(true);
-        if (platform() === "macos") {
+        if (!skipPermissionOnboarding && isMacOS) {
           try {
             const [hasAccessibility, hasMicrophone] = await Promise.all([
               checkAccessibilityPermission(),
@@ -122,7 +130,7 @@ function App() {
       } else {
         // New user - start full onboarding
         setIsReturningUser(false);
-        setOnboardingStep("accessibility");
+        setOnboardingStep(skipPermissionOnboarding ? "model" : "accessibility");
       }
     } catch (error) {
       console.error("Failed to check onboarding status:", error);
@@ -157,6 +165,7 @@ function App() {
   return (
     <div
       dir={direction}
+      style={{ fontFamily: appFontFamily }}
       className="h-screen flex flex-col select-none cursor-default"
     >
       <Toaster

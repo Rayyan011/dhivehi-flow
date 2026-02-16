@@ -20,6 +20,9 @@ const RecordingOverlay: React.FC = () => {
   const [levels, setLevels] = useState<number[]>(Array(16).fill(0));
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   const direction = getLanguageDirection(i18n.language);
+  const overlayFontFamily = i18n.language.toLowerCase().startsWith("dv")
+    ? '"Faruma", "Noto Sans Thaana", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    : undefined;
 
   useEffect(() => {
     const setupEventListeners = async () => {
@@ -73,6 +76,7 @@ const RecordingOverlay: React.FC = () => {
   return (
     <div
       dir={direction}
+      style={{ fontFamily: overlayFontFamily }}
       className={`recording-overlay ${isVisible ? "fade-in" : ""}`}
     >
       <div className="overlay-left">{getIcon()}</div>

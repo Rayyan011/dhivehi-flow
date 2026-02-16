@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Handy",
+  "productName": "Dhivehi Flow",
   "version": "0.7.5",
   "identifier": "com.pais.handy",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Handy",
+        "title": "Dhivehi Flow",
         "width": 680,
         "height": 570,
         "minWidth": 680,
