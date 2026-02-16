@@ -16,6 +16,6 @@ export const LANGUAGE_METADATA: Record<
     direction?: "ltr" | "rtl";
   }
 > = {
-  en: { name: "English", nativeName: "English", priority: 1 },
-  dv: { name: "Dhivehi", nativeName: "ދިވެހި", priority: 2, direction: "rtl" },
+  dv: { name: "Dhivehi", nativeName: "ދިވެހި", priority: 1, direction: "rtl" },
+  en: { name: "English", nativeName: "English", priority: 2 },
 };
