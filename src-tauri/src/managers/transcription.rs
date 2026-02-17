@@ -39,6 +39,160 @@ enum LoadedEngine {
     SenseVoice(SenseVoiceEngine),
 }
 
+const WHISPER_SAMPLE_RATE: usize = 16_000;
+const WHISPER_CHUNK_SECONDS: usize = 10;
+const WHISPER_CHUNK_SAMPLES: usize = WHISPER_SAMPLE_RATE * WHISPER_CHUNK_SECONDS;
+const WHISPER_MIN_RETRY_CHUNK_SECONDS: usize = 2;
+const WHISPER_MIN_RETRY_CHUNK_SAMPLES: usize =
+    WHISPER_SAMPLE_RATE * WHISPER_MIN_RETRY_CHUNK_SECONDS;
+const WHISPER_MAX_RETRY_SPLIT_DEPTH: u8 = 5;
+
+fn append_non_empty_transcription(merged: &mut String, text: &str) {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+
+    if !merged.is_empty() {
+        merged.push(' ');
+    }
+    merged.push_str(trimmed);
+}
+
+fn is_retryable_whisper_error(error_message: &str) -> bool {
+    error_message.contains("Invalid UTF-8 detected in a string from Whisper")
+        || error_message.contains("FailedToDecode")
+        || error_message.contains("UnableToCalculateSpectrogram")
+}
+
+fn transcribe_whisper_chunk_with_retry<F>(
+    chunk: &[f32],
+    params: &WhisperInferenceParams,
+    depth: u8,
+    transcribe_chunk: &mut F,
+) -> Result<String>
+where
+    F: FnMut(&[f32], &WhisperInferenceParams) -> Result<String>,
+{
+    match transcribe_chunk(chunk, params) {
+        Ok(text) => Ok(text),
+        Err(err) => {
+            let error_message = err.to_string();
+            let can_split = depth < WHISPER_MAX_RETRY_SPLIT_DEPTH
+                && chunk.len() >= WHISPER_MIN_RETRY_CHUNK_SAMPLES * 2;
+
+            if !can_split || !is_retryable_whisper_error(&error_message) {
+                return Err(anyhow::anyhow!(
+                    "Whisper chunk failed at depth {} ({} samples): {}",
+                    depth,
+                    chunk.len(),
+                    error_message
+                ));
+            }
+
+            let split_index = chunk.len() / 2;
+            warn!(
+                "Retrying Whisper chunk after error by splitting (depth={}, samples={}, error={})",
+                depth,
+                chunk.len(),
+                error_message
+            );
+
+            let left_result = transcribe_whisper_chunk_with_retry(
+                &chunk[..split_index],
+                params,
+                depth + 1,
+                transcribe_chunk,
+            );
+            let right_result = transcribe_whisper_chunk_with_retry(
+                &chunk[split_index..],
+                params,
+                depth + 1,
+                transcribe_chunk,
+            );
+
+            let mut recovered = String::new();
+            match left_result {
+                Ok(text) => append_non_empty_transcription(&mut recovered, &text),
+                Err(left_err) => {
+                    warn!("Left sub-chunk failed at depth {}: {}", depth + 1, left_err)
+                }
+            }
+            match right_result {
+                Ok(text) => append_non_empty_transcription(&mut recovered, &text),
+                Err(right_err) => {
+                    warn!(
+                        "Right sub-chunk failed at depth {}: {}",
+                        depth + 1,
+                        right_err
+                    )
+                }
+            }
+
+            if recovered.is_empty() {
+                Err(anyhow::anyhow!(
+                    "Whisper chunk failed after split retries ({} samples): {}",
+                    chunk.len(),
+                    error_message
+                ))
+            } else {
+                Ok(recovered)
+            }
+        }
+    }
+}
+
+fn transcribe_whisper_with_chunking_internal<F>(
+    audio: &[f32],
+    params: &WhisperInferenceParams,
+    transcribe_chunk: &mut F,
+) -> Result<String>
+where
+    F: FnMut(&[f32], &WhisperInferenceParams) -> Result<String>,
+{
+    let total_chunks = audio.len().div_ceil(WHISPER_CHUNK_SAMPLES);
+    if total_chunks > 1 {
+        info!(
+            "Long Whisper input detected ({} samples). Processing in {} chunks of up to {}s.",
+            audio.len(),
+            total_chunks,
+            WHISPER_CHUNK_SECONDS
+        );
+    }
+
+    let mut merged = String::new();
+    for (chunk_index, chunk) in audio.chunks(WHISPER_CHUNK_SAMPLES).enumerate() {
+        let chunk_text = transcribe_whisper_chunk_with_retry(chunk, params, 0, transcribe_chunk)
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "Whisper transcription failed on chunk {}/{}: {}",
+                    chunk_index + 1,
+                    total_chunks,
+                    e
+                )
+            })?;
+
+        append_non_empty_transcription(&mut merged, &chunk_text);
+    }
+
+    Ok(merged)
+}
+
+fn transcribe_whisper_with_chunking(
+    whisper_engine: &mut WhisperEngine,
+    audio: Vec<f32>,
+    params: WhisperInferenceParams,
+) -> Result<String> {
+    let mut transcribe_chunk = |chunk: &[f32], params: &WhisperInferenceParams| -> Result<String> {
+        let result = whisper_engine
+            .transcribe_samples(chunk.to_vec(), Some(params.clone()))
+            .map_err(|e| anyhow::anyhow!("Whisper transcription failed: {}", e))?;
+        Ok(result.text)
+    };
+
+    transcribe_whisper_with_chunking_internal(&audio, &params, &mut transcribe_chunk)
+}
+
 #[derive(Clone)]
 pub struct TranscriptionManager {
     engine: Arc<Mutex<Option<LoadedEngine>>>,
@@ -433,12 +587,15 @@ impl TranscriptionManager {
                     let params = WhisperInferenceParams {
                         language: whisper_language,
                         translate: settings.translate_to_english,
+                        no_speech_thold: 0.6,
                         ..Default::default()
                     };
 
-                    whisper_engine
-                        .transcribe_samples(audio, Some(params))
-                        .map_err(|e| anyhow::anyhow!("Whisper transcription failed: {}", e))?
+                    let text = transcribe_whisper_with_chunking(whisper_engine, audio, params)?;
+                    transcribe_rs::TranscriptionResult {
+                        text,
+                        segments: None,
+                    }
                 }
                 LoadedEngine::Parakeet(parakeet_engine) => {
                     let params = ParakeetInferenceParams {
@@ -527,5 +684,72 @@ impl Drop for TranscriptionManager {
                 debug!("Idle watcher thread joined successfully");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn whisper_chunking_splits_long_audio_into_multiple_calls() {
+        let audio = vec![0.0; WHISPER_CHUNK_SAMPLES * 2 + 123];
+        let params = WhisperInferenceParams::default();
+
+        let mut call_count = 0usize;
+        let mut mock_transcriber = |_: &[f32], _: &WhisperInferenceParams| -> Result<String> {
+            call_count += 1;
+            Ok(format!("chunk{}", call_count))
+        };
+
+        let result =
+            transcribe_whisper_with_chunking_internal(&audio, &params, &mut mock_transcriber)
+                .expect("chunked transcription should succeed");
+
+        assert_eq!(call_count, 3);
+        assert_eq!(result, "chunk1 chunk2 chunk3");
+    }
+
+    #[test]
+    fn whisper_chunking_recovers_retryable_errors_by_splitting() {
+        let audio = vec![0.0; WHISPER_CHUNK_SAMPLES];
+        let params = WhisperInferenceParams::default();
+
+        let mut call_count = 0usize;
+        let mut mock_transcriber = |chunk: &[f32], _: &WhisperInferenceParams| -> Result<String> {
+            call_count += 1;
+            if chunk.len() >= WHISPER_CHUNK_SAMPLES {
+                return Err(anyhow::anyhow!(
+                    "Invalid UTF-8 detected in a string from Whisper. Index: 0, Length: 1."
+                ));
+            }
+            Ok("ok".to_string())
+        };
+
+        let result =
+            transcribe_whisper_with_chunking_internal(&audio, &params, &mut mock_transcriber)
+                .expect("retryable errors should be recoverable via splitting");
+
+        assert_eq!(call_count, 3);
+        assert_eq!(result, "ok ok");
+    }
+
+    #[test]
+    fn whisper_chunking_returns_error_when_retry_fails_completely() {
+        let audio = vec![0.0; WHISPER_MIN_RETRY_CHUNK_SAMPLES];
+        let params = WhisperInferenceParams::default();
+
+        let mut mock_transcriber = |_: &[f32], _: &WhisperInferenceParams| -> Result<String> {
+            Err(anyhow::anyhow!(
+                "Invalid UTF-8 detected in a string from Whisper. Index: 0, Length: 1."
+            ))
+        };
+
+        let err = transcribe_whisper_with_chunking_internal(&audio, &params, &mut mock_transcriber)
+            .expect_err("expected unrecoverable chunk to return an error");
+
+        assert!(err
+            .to_string()
+            .contains("Whisper transcription failed on chunk 1/1"));
     }
 }
