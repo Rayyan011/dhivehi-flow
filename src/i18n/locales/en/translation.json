@@ -55,6 +55,10 @@
       "moonshine-base": {
         "name": "Moonshine Base",
         "description": "Very fast, English only. Handles accents well."
+      },
+      "whisper-small-dv": {
+        "name": "Whisper Small Dhivehi",
+        "description": "Optimized for Dhivehi transcription."
       }
     },
     "errors": {

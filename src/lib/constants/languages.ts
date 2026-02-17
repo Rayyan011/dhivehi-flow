@@ -5,6 +5,7 @@ export interface Language {
 
 export const LANGUAGES: Language[] = [
   { value: "auto", label: "Auto Detect" },
+  { value: "dv", label: "Dhivehi" },
   { value: "en", label: "English" },
   { value: "zh-Hans", label: "Simplified Chinese" },
   { value: "zh-Hant", label: "Traditional Chinese" },

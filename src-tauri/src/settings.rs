@@ -383,7 +383,7 @@ fn default_update_checks_enabled() -> bool {
 }
 
 fn default_selected_language() -> String {
-    "auto".to_string()
+    "dv".to_string()
 }
 
 fn default_overlay_position() -> OverlayPosition {
@@ -434,9 +434,7 @@ fn default_post_process_enabled() -> bool {
 }
 
 fn default_app_language() -> String {
-    tauri_plugin_os::locale()
-        .map(|l| l.replace('_', "-"))
-        .unwrap_or_else(|| "en".to_string())
+    "dv".to_string()
 }
 
 fn default_show_tray_icon() -> bool {
@@ -659,7 +657,7 @@ pub fn get_default_settings() -> AppSettings {
         clamshell_microphone: None,
         selected_output_device: None,
         translate_to_english: false,
-        selected_language: "auto".to_string(),
+        selected_language: default_selected_language(),
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),
@@ -823,6 +821,13 @@ pub fn get_recording_retention_period(app: &AppHandle) -> RecordingRetentionPeri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn default_settings_use_dhivehi_language() {
+        let settings = get_default_settings();
+        assert_eq!(settings.selected_language, "dv");
+        assert_eq!(settings.app_language, "dv");
+    }
 
     #[test]
     fn default_settings_disable_auto_submit() {

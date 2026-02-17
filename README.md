@@ -27,9 +27,9 @@ Handy isn't trying to be the best speech-to-text app—it's trying to be the mos
 The process is entirely local:
 
 - Silence is filtered using VAD (Voice Activity Detection) with Silero
-- Transcription uses your choice of models:
-  - **Whisper models** (Small/Medium/Turbo/Large) with GPU acceleration when available
-  - **Parakeet V3** - CPU-optimized model with excellent performance and automatic language detection
+- Transcription uses two downloadable models:
+  - **Whisper Small Dhivehi** - optimized for Dhivehi transcription
+  - **Moonshine Base** - very fast English model
 - Works on Windows, macOS, and Linux
 
 ## Quick Start
@@ -55,7 +55,7 @@ Handy is built as a Tauri application combining:
 - **Backend**: Rust for system integration, audio processing, and ML inference
 - **Core Libraries**:
   - `whisper-rs`: Local speech recognition with Whisper models
-  - `transcription-rs`: CPU-optimized speech recognition with Parakeet models
+  - `transcription-rs`: Local speech recognition runtime for Moonshine + Whisper
   - `cpal`: Cross-platform audio I/O
   - `vad-rs`: Voice Activity Detection
   - `rdev`: Global keyboard shortcuts and system events
@@ -222,59 +222,42 @@ New-Item -ItemType Directory -Force -Path "$env:APPDATA\com.pais.handy\models"
 
 #### Step 3: Download Model Files
 
-Download the models you want from below
+Download one or both models from below:
 
-**Whisper Models (single .bin files):**
-
-- Small (487 MB): `https://blob.handy.computer/ggml-small.bin`
-- Medium (492 MB): `https://blob.handy.computer/whisper-medium-q4_1.bin`
-- Turbo (1600 MB): `https://blob.handy.computer/ggml-large-v3-turbo.bin`
-- Large (1100 MB): `https://blob.handy.computer/ggml-large-v3-q5_0.bin`
-
-**Parakeet Models (compressed archives):**
-
-- V2 (473 MB): `https://blob.handy.computer/parakeet-v2-int8.tar.gz`
-- V3 (478 MB): `https://blob.handy.computer/parakeet-v3-int8.tar.gz`
+- Whisper Small Dhivehi (single `.bin` file): `https://huggingface.co/mohamedrayyan/whisper-small-dv-ggml/resolve/main/ggml-whisper-small-dv.bin`
+- Moonshine Base (compressed archive): `https://blob.handy.computer/moonshine-base.tar.gz`
 
 #### Step 4: Install Models
 
-**For Whisper Models (.bin files):**
+**For Whisper Small Dhivehi (.bin):**
 
-Simply place the `.bin` file directly into the `models` directory:
+Place the file directly into the `models` directory:
 
 ```
 {app_data_dir}/models/
-├── ggml-small.bin
-├── whisper-medium-q4_1.bin
-├── ggml-large-v3-turbo.bin
-└── ggml-large-v3-q5_0.bin
+└── ggml-whisper-small-dv.bin
 ```
 
-**For Parakeet Models (.tar.gz archives):**
+**For Moonshine Base (.tar.gz archive):**
 
 1. Extract the `.tar.gz` file
-2. Place the **extracted directory** into the `models` folder
-3. The directory must be named exactly as follows:
-   - **Parakeet V2**: `parakeet-tdt-0.6b-v2-int8`
-   - **Parakeet V3**: `parakeet-tdt-0.6b-v3-int8`
+2. Place the extracted directory into the `models` folder
+3. The directory must be named exactly: `moonshine-base`
 
 Final structure should look like:
 
 ```
 {app_data_dir}/models/
-├── parakeet-tdt-0.6b-v2-int8/     (directory with model files inside)
-│   ├── (model files)
-│   └── (config files)
-└── parakeet-tdt-0.6b-v3-int8/     (directory with model files inside)
+└── moonshine-base/
     ├── (model files)
     └── (config files)
 ```
 
 **Important Notes:**
 
-- For Parakeet models, the extracted directory name **must** match exactly as shown above
-- Do not rename the `.bin` files for Whisper models—use the exact filenames from the download URLs
-- After placing the files, restart Handy to detect the new models
+- Do not rename `ggml-whisper-small-dv.bin`
+- For Moonshine, extracted directory name **must** be `moonshine-base`
+- After placing the files, restart Handy to detect the models
 
 #### Step 5: Verify Installation
 
@@ -285,20 +268,12 @@ Final structure should look like:
 
 ### Custom Whisper Models
 
-Handy can auto-discover custom Whisper GGML models placed in the `models` directory. This is useful for users who want to use fine-tuned or community models not included in the default model list.
+This fork intentionally limits model selection to two built-in downloadable options:
 
-**How to use:**
+- `whisper-small-dv` (`ggml-whisper-small-dv.bin`)
+- `moonshine-base` (`moonshine-base/`)
 
-1. Obtain a Whisper model in GGML `.bin` format (e.g., from [Hugging Face](https://huggingface.co/models?search=whisper%20ggml))
-2. Place the `.bin` file in your `models` directory (see paths above)
-3. Restart Handy to discover the new model
-4. The model will appear in the "Custom Models" section of the Models settings page
-
-**Important:**
-
-- Community models are user-provided and may not receive troubleshooting assistance
-- The model must be a valid Whisper GGML format (`.bin` file)
-- Model name is derived from the filename (e.g., `my-custom-model.bin` → "My Custom Model")
+Other custom model files placed in the `models` directory are not listed in the UI.
 
 ### How to Contribute
 
