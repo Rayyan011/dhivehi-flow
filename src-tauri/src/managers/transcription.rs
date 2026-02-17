@@ -1,5 +1,7 @@
 use crate::audio_toolkit::{apply_custom_words, filter_transcription_output};
 use crate::managers::model::{EngineType, ModelManager};
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+use crate::managers::whisperkit_sidecar::WhisperKitSidecar;
 use crate::settings::{get_settings, ModelUnloadTimeout};
 use anyhow::Result;
 use log::{debug, error, info, warn};
@@ -8,7 +10,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use transcribe_rs::{
     engines::{
         moonshine::{ModelVariant, MoonshineEngine, MoonshineModelParams},
@@ -37,6 +39,8 @@ enum LoadedEngine {
     Parakeet(ParakeetEngine),
     Moonshine(MoonshineEngine),
     SenseVoice(SenseVoiceEngine),
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    WhisperKit(WhisperKitSidecar),
 }
 
 const WHISPER_SAMPLE_RATE: usize = 16_000;
@@ -305,6 +309,8 @@ impl TranscriptionManager {
                     LoadedEngine::Parakeet(ref mut e) => e.unload_model(),
                     LoadedEngine::Moonshine(ref mut e) => e.unload_model(),
                     LoadedEngine::SenseVoice(ref mut e) => e.unload_model(),
+                    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                    LoadedEngine::WhisperKit(ref mut e) => e.unload_model(),
                 }
             }
             *engine = None; // Drop the engine to free memory
@@ -464,6 +470,67 @@ impl TranscriptionManager {
                     })?;
                 LoadedEngine::SenseVoice(engine)
             }
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            EngineType::WhisperKit => {
+                let sidecar_path = self.get_sidecar_path().map_err(|e| {
+                    let error_msg = format!("WhisperKit sidecar not available: {}", e);
+                    let _ = self.app_handle.emit(
+                        "model-state-changed",
+                        ModelStateEvent {
+                            event_type: "loading_failed".to_string(),
+                            model_id: Some(model_id.to_string()),
+                            model_name: Some(model_info.name.clone()),
+                            error: Some(error_msg.clone()),
+                        },
+                    );
+                    anyhow::anyhow!(error_msg)
+                })?;
+                let mut engine = WhisperKitSidecar::new(sidecar_path);
+                engine.start().map_err(|e| {
+                    let error_msg = format!("Failed to start WhisperKit sidecar: {}", e);
+                    let _ = self.app_handle.emit(
+                        "model-state-changed",
+                        ModelStateEvent {
+                            event_type: "loading_failed".to_string(),
+                            model_id: Some(model_id.to_string()),
+                            model_name: Some(model_info.name.clone()),
+                            error: Some(error_msg.clone()),
+                        },
+                    );
+                    anyhow::anyhow!(error_msg)
+                })?;
+                engine
+                    .load_model(model_path.to_str().unwrap_or_default())
+                    .map_err(|e| {
+                        let error_msg =
+                            format!("Failed to load WhisperKit model {}: {}", model_id, e);
+                        let _ = self.app_handle.emit(
+                            "model-state-changed",
+                            ModelStateEvent {
+                                event_type: "loading_failed".to_string(),
+                                model_id: Some(model_id.to_string()),
+                                model_name: Some(model_info.name.clone()),
+                                error: Some(error_msg.clone()),
+                            },
+                        );
+                        anyhow::anyhow!(error_msg)
+                    })?;
+                LoadedEngine::WhisperKit(engine)
+            }
+            #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+            EngineType::WhisperKit => {
+                let error_msg = "WhisperKit is only available on Apple Silicon Macs".to_string();
+                let _ = self.app_handle.emit(
+                    "model-state-changed",
+                    ModelStateEvent {
+                        event_type: "loading_failed".to_string(),
+                        model_id: Some(model_id.to_string()),
+                        model_name: Some(model_info.name.clone()),
+                        error: Some(error_msg.clone()),
+                    },
+                );
+                return Err(anyhow::anyhow!(error_msg));
+            }
         };
 
         // Update the current engine and model ID
@@ -519,6 +586,42 @@ impl TranscriptionManager {
     pub fn get_current_model(&self) -> Option<String> {
         let current_model = self.current_model_id.lock().unwrap();
         current_model.clone()
+    }
+
+    /// Resolve the path to the WhisperKit sidecar binary
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn get_sidecar_path(&self) -> Result<std::path::PathBuf> {
+        let resource_path = self
+            .app_handle
+            .path()
+            .resolve(
+                "resources/whisperkit-sidecar",
+                tauri::path::BaseDirectory::Resource,
+            )
+            .map_err(|e| anyhow::anyhow!("Failed to resolve sidecar path: {}", e))?;
+
+        if resource_path.exists() {
+            return Ok(resource_path);
+        }
+
+        // Fallback: check relative to the executable for dev mode
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                let dev_path = exe_dir
+                    .join("..")
+                    .join("..")
+                    .join("resources")
+                    .join("whisperkit-sidecar");
+                if dev_path.exists() {
+                    return Ok(dev_path);
+                }
+            }
+        }
+
+        Err(anyhow::anyhow!(
+            "WhisperKit sidecar binary not found at {:?}",
+            resource_path
+        ))
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<String> {
@@ -625,6 +728,21 @@ impl TranscriptionManager {
                     sense_voice_engine
                         .transcribe_samples(audio, Some(params))
                         .map_err(|e| anyhow::anyhow!("SenseVoice transcription failed: {}", e))?
+                }
+                #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                LoadedEngine::WhisperKit(whisperkit_engine) => {
+                    let language = if settings.selected_language == "auto" {
+                        "auto".to_string()
+                    } else {
+                        settings.selected_language.clone()
+                    };
+                    let text = whisperkit_engine
+                        .transcribe(&audio, &language)
+                        .map_err(|e| anyhow::anyhow!("WhisperKit transcription failed: {}", e))?;
+                    transcribe_rs::TranscriptionResult {
+                        text,
+                        segments: None,
+                    }
                 }
             }
         };

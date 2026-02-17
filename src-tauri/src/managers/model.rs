@@ -12,6 +12,8 @@ use std::io::Write;
 #[cfg(test)]
 use std::path::Path;
 use std::path::PathBuf;
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -24,6 +26,7 @@ pub enum EngineType {
     Parakeet,
     Moonshine,
     SenseVoice,
+    WhisperKit,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -197,6 +200,46 @@ impl ModelManager {
             },
         );
 
+        // On Apple Silicon, register WhisperKit model and prefer it over whisper.cpp
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            if Self::is_whisperkit_sidecar_available(app_handle) {
+                available_models.insert(
+                    "whisperkit-small-dv".to_string(),
+                    ModelInfo {
+                        id: "whisperkit-small-dv".to_string(),
+                        name: "WhisperKit Small Dhivehi".to_string(),
+                        description: "Optimized for Dhivehi on Apple Silicon (CoreML)."
+                            .to_string(),
+                        filename: "whisperkit-small-dv-coreml".to_string(),
+                        url: Some(
+                            "https://huggingface.co/mohamedrayyan/whisper-small-dv-coreml/resolve/main/whisperkit-small-dv-coreml.tar.gz"
+                                .to_string(),
+                        ),
+                        size_mb: 426,
+                        is_downloaded: false,
+                        is_downloading: false,
+                        partial_size: 0,
+                        is_directory: true,
+                        engine_type: EngineType::WhisperKit,
+                        accuracy_score: 0.92,
+                        speed_score: 0.95,
+                        supports_translation: false,
+                        is_recommended: true,
+                        supported_languages: vec!["dv".to_string()],
+                        is_custom: false,
+                    },
+                );
+
+                // Demote whisper-small-dv on Apple Silicon since WhisperKit version is preferred
+                if let Some(whisper_model) = available_models.get_mut("whisper-small-dv") {
+                    whisper_model.is_recommended = false;
+                }
+            } else {
+                info!("WhisperKit sidecar unavailable; skipping WhisperKit model registration");
+            }
+        }
+
         let manager = Self {
             app_handle: app_handle.clone(),
             models_dir,
@@ -215,6 +258,98 @@ impl ModelManager {
         manager.auto_select_model_if_needed()?;
 
         Ok(manager)
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn is_whisperkit_sidecar_available(app_handle: &AppHandle) -> bool {
+        let Some(sidecar_path) = Self::resolve_whisperkit_sidecar_path(app_handle) else {
+            warn!("WhisperKit sidecar binary not found; WhisperKit model will remain hidden");
+            return false;
+        };
+
+        if !Self::is_whisperkit_sidecar_runnable(&sidecar_path) {
+            warn!(
+                "WhisperKit sidecar exists but is not runnable on this macOS version: {:?}",
+                sidecar_path
+            );
+            return false;
+        }
+
+        info!(
+            "WhisperKit sidecar found and runnable at {:?}",
+            sidecar_path
+        );
+        true
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn resolve_whisperkit_sidecar_path(app_handle: &AppHandle) -> Option<PathBuf> {
+        // First try Tauri resource resolution
+        match app_handle.path().resolve(
+            "resources/whisperkit-sidecar",
+            tauri::path::BaseDirectory::Resource,
+        ) {
+            Ok(path) if path.exists() => {
+                return Some(path);
+            }
+            Ok(path) => {
+                info!(
+                    "WhisperKit sidecar not at resolved path {:?}, trying fallback",
+                    path
+                );
+            }
+            Err(e) => {
+                info!(
+                    "Failed to resolve WhisperKit sidecar path ({}), trying fallback",
+                    e
+                );
+            }
+        }
+
+        // Fallback: check relative to the executable for dev mode
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                // In dev mode the binary is at target/debug/handy,
+                // resources are at src-tauri/resources/ (2 levels up)
+                let dev_path = exe_dir
+                    .join("..")
+                    .join("..")
+                    .join("resources")
+                    .join("whisperkit-sidecar");
+                if dev_path.exists() {
+                    return Some(dev_path);
+                }
+                info!("WhisperKit sidecar not at dev fallback {:?}", dev_path);
+            }
+        }
+
+        None
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn is_whisperkit_sidecar_runnable(sidecar_path: &std::path::Path) -> bool {
+        match Command::new(sidecar_path)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+        {
+            Ok(status) if status.success() => true,
+            Ok(status) => {
+                warn!(
+                    "WhisperKit sidecar runtime probe exited with status {}: {:?}",
+                    status, sidecar_path
+                );
+                false
+            }
+            Err(e) => {
+                warn!(
+                    "WhisperKit sidecar runtime probe failed for {:?}: {}",
+                    sidecar_path, e
+                );
+                false
+            }
+        }
     }
 
     pub fn get_available_models(&self) -> Vec<ModelInfo> {

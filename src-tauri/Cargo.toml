@@ -75,6 +75,7 @@ specta = "=2.0.0-rc.22"
 specta-typescript = "0.0.9"
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
 tauri-plugin-dialog = "2"
+tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
@@ -105,9 +106,6 @@ gtk = "0.18"
 tauri-runtime = { git = "https://github.com/cjpais/tauri.git", branch = "handy-2.9.1" }
 tauri-runtime-wry = { git = "https://github.com/cjpais/tauri.git", branch = "handy-2.9.1" }
 tauri-utils = { git = "https://github.com/cjpais/tauri.git", branch = "handy-2.9.1" }
-
-[dev-dependencies]
-tempfile = "3"
 
 [profile.release]
 lto = true
