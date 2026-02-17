@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { platform } from "@tauri-apps/plugin-os";
+import { listen } from "@tauri-apps/api/event";
 import {
   checkAccessibilityPermission,
   checkMicrophonePermission,
@@ -25,7 +26,7 @@ const renderSettingsContent = (section: SidebarSection) => {
 };
 
 function App() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(
     null,
   );
@@ -95,6 +96,28 @@ function App() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [settings?.debug_mode, updateSetting]);
+
+  useEffect(() => {
+    const listeners = Promise.all([
+      listen("transcription-empty", () => {
+        toast.warning(t("toasts.transcriptionEmpty"));
+      }),
+      listen("paste-skipped-none", () => {
+        toast.warning(t("toasts.pasteSkippedNone"));
+      }),
+      listen<string[]>("model-safeguards-applied", (event) => {
+        if (event.payload?.length) {
+          toast.info(t("toasts.modelSafeguardsApplied"));
+        }
+      }),
+    ]);
+
+    return () => {
+      listeners.then((unlistenFns) => {
+        unlistenFns.forEach((unlisten) => unlisten());
+      });
+    };
+  }, [t]);
 
   const checkOnboardingStatus = async () => {
     try {

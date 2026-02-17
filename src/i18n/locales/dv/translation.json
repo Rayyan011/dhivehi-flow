@@ -516,6 +516,11 @@
     "openSettings": "ސިސްޓަމް ސެޓިންގްސް ހުޅުވާ",
     "dismiss": "ޑިސްމިސް"
   },
+  "toasts": {
+    "transcriptionEmpty": "އަޑު ނުފެނުނު. އިތުރު ވަގުތު ވާހަކަ ދައްކާ ނުވަތަ މައިކްރޮފޯނާ ގާތްގައި ވާހަކަ ދައްކާ.",
+    "pasteSkippedNone": "ޕޭސްޓް ޑިސޭބަލް ކޮށްފައި (Paste Method: None). Settings ގައި Direct ނުވަތަ Clipboard ހޮވާ.",
+    "modelSafeguardsApplied": "Dhivehi މޮޑެލަށް ސޭފް ސެޓިންގްތައް އެޕްލައިކުރެވިއްޖެ."
+  },
   "errors": {
     "loadDirectory": "ޑައިރެކްޓަރީ ލޯޑް ކުރުމުގައި އެރަރ: {{error}}"
   },

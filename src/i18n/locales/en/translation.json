@@ -516,6 +516,11 @@
     "openSettings": "Open System Settings",
     "dismiss": "Dismiss"
   },
+  "toasts": {
+    "transcriptionEmpty": "No speech detected. Try speaking longer or closer to the microphone.",
+    "pasteSkippedNone": "Paste is disabled (Paste Method: None). Choose Direct or Clipboard in settings.",
+    "modelSafeguardsApplied": "Applied Dhivehi model safeguards (language set to Dhivehi and translation turned off)."
+  },
   "errors": {
     "loadDirectory": "Error loading directory: {{error}}"
   },

@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::AppHandle;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Drop guard that notifies the [`TranscriptionCoordinator`] when the
 /// transcription pipeline finishes — whether it completes normally or panics.
@@ -420,6 +420,7 @@ impl ShortcutAction for TranscribeAction {
                                 change_tray_icon(&ah, TrayIconState::Idle);
                             });
                         } else {
+                            let _ = ah.emit("transcription-empty", ());
                             utils::hide_recording_overlay(&ah);
                             change_tray_icon(&ah, TrayIconState::Idle);
                         }

@@ -5,7 +5,7 @@ use crate::settings::{get_settings, AutoSubmitKey, ClipboardHandling, PasteMetho
 use enigo::{Direction, Enigo, Key, Keyboard};
 use log::info;
 use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 #[cfg(target_os = "linux")]
@@ -594,6 +594,7 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     match paste_method {
         PasteMethod::None => {
             info!("PasteMethod::None selected - skipping paste action");
+            let _ = app_handle.emit("paste-skipped-none", ());
         }
         PasteMethod::Direct => {
             paste_direct(
