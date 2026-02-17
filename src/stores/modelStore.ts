@@ -3,6 +3,7 @@ import { subscribeWithSelector } from "zustand/middleware";
 import { produce } from "immer";
 import { listen } from "@tauri-apps/api/event";
 import { commands, type ModelInfo } from "@/bindings";
+import { useSettingsStore } from "./settingsStore";
 
 interface DownloadProgress {
   model_id: string;
@@ -144,6 +145,7 @@ export const useModelStore = create<ModelsStore>()(
         set({ error: null });
         const result = await commands.setActiveModel(modelId);
         if (result.status === "ok") {
+          await useSettingsStore.getState().refreshSettings();
           set({
             currentModel: modelId,
             isFirstRun: false,

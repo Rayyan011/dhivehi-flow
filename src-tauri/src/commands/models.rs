@@ -1,8 +1,35 @@
 use crate::managers::model::{ModelInfo, ModelManager};
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, write_settings};
+use crate::settings::{get_settings, write_settings, AppSettings, PasteMethod};
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
+
+const DHIVEHI_WHISPER_MODEL_ID: &str = "whisper-small-dv";
+
+fn apply_dhivehi_whisper_safeguards(settings: &mut AppSettings, model_id: &str) -> Vec<String> {
+    if model_id != DHIVEHI_WHISPER_MODEL_ID {
+        return Vec::new();
+    }
+
+    let mut changed = Vec::new();
+
+    if settings.selected_language != "dv" {
+        settings.selected_language = "dv".to_string();
+        changed.push("selected_language".to_string());
+    }
+
+    if settings.translate_to_english {
+        settings.translate_to_english = false;
+        changed.push("translate_to_english".to_string());
+    }
+
+    if settings.paste_method == PasteMethod::None {
+        settings.paste_method = PasteMethod::default();
+        changed.push("paste_method".to_string());
+    }
+
+    changed
+}
 
 #[tauri::command]
 #[specta::specta]
@@ -83,7 +110,12 @@ pub async fn set_active_model(
     // Update settings
     let mut settings = get_settings(&app_handle);
     settings.selected_model = model_id.clone();
+    let changed_settings = apply_dhivehi_whisper_safeguards(&mut settings, &model_id);
     write_settings(&app_handle, settings);
+
+    if !changed_settings.is_empty() {
+        let _ = app_handle.emit("model-safeguards-applied", changed_settings);
+    }
 
     Ok(())
 }
