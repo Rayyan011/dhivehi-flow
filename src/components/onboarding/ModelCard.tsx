@@ -45,6 +45,7 @@ interface ModelCardProps {
   variant?: "default" | "featured";
   status?: ModelCardStatus;
   disabled?: boolean;
+  compact?: boolean;
   className?: string;
   onSelect: (modelId: string) => void;
   onDownload?: (modelId: string) => void;
@@ -60,6 +61,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
   variant = "default",
   status = "downloadable",
   disabled = false,
+  compact = false,
   className = "",
   onSelect,
   onDownload,
@@ -78,8 +80,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const displayName = getTranslatedModelName(model, t);
   const displayDescription = getTranslatedModelDescription(model, t);
 
-  const baseClasses =
-    "flex flex-col rounded-xl px-4 py-3 gap-2 text-left transition-all duration-200";
+  const baseClasses = compact
+    ? "flex flex-col rounded-xl px-3 py-2 gap-1.5 text-left transition-all duration-200"
+    : "flex flex-col rounded-xl px-4 py-3 gap-2 text-left transition-all duration-200";
 
   const getVariantClasses = () => {
     if (status === "active") {
@@ -131,9 +134,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
       {/* Top section: name/description + score bars */}
       <div className="flex justify-between items-center w-full">
         <div className="flex flex-col items-start flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className={`${compact ? "flex items-center gap-2 flex-wrap" : "flex items-center gap-3 flex-wrap"}`}>
             <h3
-              className={`text-base font-semibold text-text ${isClickable ? "group-hover:text-logo-primary" : ""} transition-colors`}
+              className={`${compact ? "text-sm" : "text-base"} font-semibold text-text ${isClickable ? "group-hover:text-logo-primary" : ""} transition-colors`}
             >
               {displayName}
             </h3>
@@ -156,7 +159,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
               </Badge>
             )}
           </div>
-          <p className="text-text/60 text-sm leading-relaxed">
+          <p className={`${compact ? "text-xs leading-snug" : "text-sm leading-relaxed"} text-text/60`}>
             {displayDescription}
           </p>
         </div>
@@ -193,7 +196,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
       <hr className="w-full border-mid-gray/20" />
 
       {/* Bottom row: tags + action buttons (full width) */}
-      <div className="flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5">
+      <div className={`${compact ? "flex items-center gap-2 w-full -mb-0.5 mt-0.5 h-4" : "flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5"}`}>
         {model.supported_languages.length > 0 && (
           <div
             className="flex items-center gap-1 text-xs text-text/50"

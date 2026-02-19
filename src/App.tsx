@@ -11,6 +11,7 @@ import "./App.css";
 import AccessibilityPermissions from "./components/AccessibilityPermissions";
 import Footer from "./components/footer";
 import Onboarding, { AccessibilityOnboarding } from "./components/onboarding";
+import { OnboardingFlow } from "./components/onboarding-new/OnboardingFlow";
 import { Sidebar, SidebarSection, SECTIONS_CONFIG } from "./components/Sidebar";
 import { useSettings } from "./hooks/useSettings";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -172,9 +173,18 @@ function App() {
     setOnboardingStep("done");
   };
 
+  const handleOnboardingComplete = () => {
+    setOnboardingStep("done");
+  };
+
   // Still checking onboarding status
   if (onboardingStep === null) {
     return null;
+  }
+
+  // Use new unified onboarding flow for new users
+  if (!isReturningUser && onboardingStep !== "done") {
+      return <OnboardingFlow onComplete={handleOnboardingComplete} />;
   }
 
   if (onboardingStep === "accessibility") {
@@ -182,6 +192,7 @@ function App() {
   }
 
   if (onboardingStep === "model") {
+    // Fallback for returning users who somehow got into model state, or if logic changes
     return <Onboarding onModelSelected={handleModelSelected} />;
   }
 

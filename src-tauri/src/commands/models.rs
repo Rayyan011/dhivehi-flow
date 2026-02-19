@@ -5,10 +5,9 @@ use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 
 const DHIVEHI_WHISPER_MODEL_ID: &str = "whisper-small-dv";
-const DHIVEHI_WHISPERKIT_MODEL_ID: &str = "whisperkit-small-dv";
 
 fn apply_dhivehi_whisper_safeguards(settings: &mut AppSettings, model_id: &str) -> Vec<String> {
-    if model_id != DHIVEHI_WHISPER_MODEL_ID && model_id != DHIVEHI_WHISPERKIT_MODEL_ID {
+    if model_id != DHIVEHI_WHISPER_MODEL_ID {
         return Vec::new();
     }
 

@@ -637,6 +637,22 @@ async getClamshellMicrophone() : Promise<Result<string, string>> {
 async isRecording() : Promise<boolean> {
     return await TAURI_INVOKE("is_recording");
 },
+async startRecording() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_recording") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopRecording() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_recording") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async setModelUnloadTimeout(timeout: ModelUnloadTimeout) : Promise<void> {
     await TAURI_INVOKE("set_model_unload_timeout", { timeout });
 },
@@ -736,7 +752,7 @@ export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CustomSounds = { start: boolean; stop: boolean }
-export type EngineType = "Whisper" | "Parakeet" | "Moonshine" | "SenseVoice" | "WhisperKit"
+export type EngineType = "Whisper" | "Parakeet" | "Moonshine" | "SenseVoice"
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null }
 /**
  * Result of changing keyboard implementation

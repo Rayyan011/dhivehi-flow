@@ -332,6 +332,8 @@ pub fn run() {
         commands::audio::set_clamshell_microphone,
         commands::audio::get_clamshell_microphone,
         commands::audio::is_recording,
+        commands::audio::start_recording,
+        commands::audio::stop_recording,
         commands::transcription::set_model_unload_timeout,
         commands::transcription::get_model_load_status,
         commands::transcription::unload_model_manually,
