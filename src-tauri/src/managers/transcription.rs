@@ -206,6 +206,19 @@ pub struct TranscriptionManager {
     loading_condvar: Arc<Condvar>,
 }
 
+struct LoadingStateGuard {
+    is_loading: Arc<Mutex<bool>>,
+    loading_condvar: Arc<Condvar>,
+}
+
+impl Drop for LoadingStateGuard {
+    fn drop(&mut self) {
+        let mut is_loading = self.is_loading.lock().unwrap();
+        *is_loading = false;
+        self.loading_condvar.notify_all();
+    }
+}
+
 impl TranscriptionManager {
     pub fn new(app_handle: &AppHandle, model_manager: Arc<ModelManager>) -> Result<Self> {
         let manager = Self {
@@ -346,7 +359,11 @@ impl TranscriptionManager {
         }
     }
 
-    pub fn load_model(&self, model_id: &str) -> Result<()> {
+    fn is_requested_model_loaded(&self, model_id: &str) -> bool {
+        self.is_model_loaded() && self.get_current_model().as_deref() == Some(model_id)
+    }
+
+    fn load_model_inner(&self, model_id: &str) -> Result<()> {
         let load_start = std::time::Instant::now();
         debug!("Starting to load model: {}", model_id);
 
@@ -496,23 +513,47 @@ impl TranscriptionManager {
         Ok(())
     }
 
-    /// Kicks off the model loading in a background thread if it's not already loaded
-    pub fn initiate_model_load(&self) {
-        let mut is_loading = self.is_loading.lock().unwrap();
-        if *is_loading || self.is_model_loaded() {
-            return;
+    pub fn load_model(&self, model_id: &str) -> Result<()> {
+        {
+            let mut is_loading = self.is_loading.lock().unwrap();
+            while *is_loading {
+                is_loading = self.loading_condvar.wait(is_loading).unwrap();
+            }
+
+            if self.is_requested_model_loaded(model_id) {
+                debug!(
+                    "Model '{}' is already loaded and active; skipping redundant load",
+                    model_id
+                );
+                return Ok(());
+            }
+
+            *is_loading = true;
         }
 
-        *is_loading = true;
+        let _loading_guard = LoadingStateGuard {
+            is_loading: Arc::clone(&self.is_loading),
+            loading_condvar: Arc::clone(&self.loading_condvar),
+        };
+
+        self.load_model_inner(model_id)
+    }
+
+    /// Kicks off the model loading in a background thread if it's not already loaded
+    pub fn initiate_model_load(&self) {
+        {
+            let is_loading = self.is_loading.lock().unwrap();
+            if *is_loading || self.is_model_loaded() {
+                return;
+            }
+        }
+
         let self_clone = self.clone();
         thread::spawn(move || {
             let settings = get_settings(&self_clone.app_handle);
             if let Err(e) = self_clone.load_model(&settings.selected_model) {
                 error!("Failed to load model: {}", e);
             }
-            let mut is_loading = self_clone.is_loading.lock().unwrap();
-            *is_loading = false;
-            self_clone.loading_condvar.notify_all();
         });
     }
 

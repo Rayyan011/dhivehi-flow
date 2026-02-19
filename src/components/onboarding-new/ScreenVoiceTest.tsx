@@ -45,6 +45,16 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
   const pose: BaukaloPose = "cool";
 
   useEffect(() => {
+    // Ensure runtime handlers are active during onboarding tests, even if
+    // app-level post-onboarding init has not run yet.
+    Promise.all([commands.initializeEnigo(), commands.initializeShortcuts()]).catch(
+      (e) => {
+        console.warn("Failed to initialize onboarding voice test runtime:", e);
+      },
+    );
+  }, []);
+
+  useEffect(() => {
     if (!isRecordingShortcut) return;
 
     let cancelled = false;

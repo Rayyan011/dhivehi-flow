@@ -6,7 +6,7 @@ import { commands, type HistoryEntry } from "@/bindings";
 import { listen } from "@tauri-apps/api/event";
 import { useSettings } from "@/hooks/useSettings";
 import { useOsType } from "@/hooks/useOsType";
-import { formatKeyCombination, getKeyName, normalizeKey } from "@/lib/utils/keyboard";
+import { formatKeyCombination } from "@/lib/utils/keyboard";
 
 interface ScreenTranscriptionTestProps {
   onNext: () => void;
@@ -19,45 +19,40 @@ const pickLatestEntry = (entries: HistoryEntry[]): HistoryEntry | null => {
   );
 };
 
-const normalizeBindingPart = (part: string): string => {
-  return part
-    .trim()
-    .toLowerCase()
-    .replace(/_left|_right/g, "")
-    .replace("control", "ctrl")
-    .replace("meta", "command");
-};
-
 export const ScreenTranscriptionTest: React.FC<ScreenTranscriptionTestProps> = ({
   onNext,
 }) => {
   const { t } = useTranslation();
   const { settings } = useSettings();
   const osType = useOsType();
-  const isMockOnboarding =
-    import.meta.env.DEV &&
-    new URLSearchParams(window.location.search).get("onboardingMock") !== "0";
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcribedText, setTranscribedText] = useState("");
   const baselineTimestampRef = useRef<number>(0);
-  const [pressedKeys, setPressedKeys] = useState<string[]>([]);
-  const [mockTriggered, setMockTriggered] = useState(false);
 
   const currentBinding =
     settings?.bindings?.transcribe?.current_binding ??
     t("onboardingNew.shortcutSetup.fallback");
   const formattedShortcut = formatKeyCombination(currentBinding, osType);
-  const requiredKeys = useMemo(
-    () => currentBinding.split("+").map(normalizeBindingPart),
-    [currentBinding],
-  );
 
   const pose: BaukaloPose = useMemo(() => {
-    if (isProcessing) return "concentrate";
-    if (transcribedText.trim().length > 0) return "happy";
-    return "listen";
+    if (isProcessing) return "listen";
+    if (transcribedText.trim().length > 0) return "celebrate";
+    return "perk";
   }, [isProcessing, transcribedText]);
+
+  useEffect(() => {
+    // Ensure runtime handlers are active during onboarding tests, even if
+    // app-level post-onboarding init has not run yet.
+    Promise.all([commands.initializeEnigo(), commands.initializeShortcuts()]).catch(
+      (e) => {
+        console.warn(
+          "Failed to initialize onboarding transcription test runtime:",
+          e,
+        );
+      },
+    );
+  }, []);
 
   const getLatestTimestamp = async (): Promise<number> => {
     const result = await commands.getHistoryEntries();
@@ -83,8 +78,6 @@ export const ScreenTranscriptionTest: React.FC<ScreenTranscriptionTestProps> = (
   };
 
   useEffect(() => {
-    if (isMockOnboarding) return;
-
     let unlistenFn: (() => void) | null = null;
     let active = true;
 
@@ -108,43 +101,7 @@ export const ScreenTranscriptionTest: React.FC<ScreenTranscriptionTestProps> = (
       active = false;
       if (unlistenFn) unlistenFn();
     };
-  }, [isMockOnboarding]);
-
-  useEffect(() => {
-    if (!isMockOnboarding) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      const key = normalizeBindingPart(normalizeKey(getKeyName(e, osType)));
-      setPressedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-    };
-
-    const onKeyUp = () => {
-      setPressedKeys([]);
-      setMockTriggered(false);
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-  }, [isMockOnboarding, osType]);
-
-  useEffect(() => {
-    if (!isMockOnboarding || mockTriggered) return;
-    const hasAllKeys = requiredKeys.every((key) => pressedKeys.includes(key));
-    if (!hasAllKeys) return;
-
-    setMockTriggered(true);
-    setIsProcessing(true);
-    setTimeout(() => {
-      setTranscribedText(t("onboardingNew.transcriptionTest.mockResult"));
-      setIsProcessing(false);
-    }, 500);
-  }, [isMockOnboarding, mockTriggered, pressedKeys, requiredKeys, t]);
+  }, []);
 
   return (
     <div className="flex flex-col items-center h-full w-full py-5 animate-in fade-in duration-500">
@@ -181,15 +138,6 @@ export const ScreenTranscriptionTest: React.FC<ScreenTranscriptionTestProps> = (
       </div>
 
       <div className="flex flex-col items-center gap-3 w-full mt-auto shrink-0">
-        {transcribedText && (
-          <Button
-            onClick={() => setTranscribedText("")}
-            variant="secondary"
-            className="w-64 h-10 text-sm"
-          >
-            {t("onboardingNew.voiceTest.tryAgain")}
-          </Button>
-        )}
         <Button onClick={onNext} className="w-64 h-12 text-base" size="lg">
           {t("onboardingNew.voiceTest.cta")}
         </Button>

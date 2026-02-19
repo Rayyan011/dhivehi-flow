@@ -102,10 +102,15 @@ pub async fn set_active_model(
         return Err(format!("Model not downloaded: {}", model_id));
     }
 
-    // Load the model in the transcription manager
-    transcription_manager
-        .load_model(&model_id)
-        .map_err(|e| e.to_string())?;
+    let already_active = transcription_manager.is_model_loaded()
+        && transcription_manager.get_current_model().as_deref() == Some(model_id.as_str());
+
+    // Load the model in the transcription manager only if needed.
+    if !already_active {
+        transcription_manager
+            .load_model(&model_id)
+            .map_err(|e| e.to_string())?;
+    }
 
     // Update settings
     let mut settings = get_settings(&app_handle);

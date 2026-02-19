@@ -23,6 +23,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     downloadStats,
   } = useModelStore();
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [isSelectingModel, setIsSelectingModel] = useState(false);
 
   const isDownloading = selectedModelId !== null;
 
@@ -34,14 +35,21 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     const stillDownloading = selectedModelId in downloadingModels;
     const stillExtracting = selectedModelId in extractingModels;
 
-    if (model?.is_downloaded && !stillDownloading && !stillExtracting) {
+    if (
+      model?.is_downloaded &&
+      !stillDownloading &&
+      !stillExtracting &&
+      !isSelectingModel
+    ) {
       // Model is ready — select it and transition
+      setIsSelectingModel(true);
       selectModel(selectedModelId).then((success) => {
         if (success) {
           onModelSelected();
         } else {
           toast.error(t("onboarding.errors.selectModel"));
           setSelectedModelId(null);
+          setIsSelectingModel(false);
         }
       });
     }
@@ -50,8 +58,10 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     models,
     downloadingModels,
     extractingModels,
+    isSelectingModel,
     selectModel,
     onModelSelected,
+    t,
   ]);
 
   const handleDownloadModel = async (modelId: string) => {
@@ -61,6 +71,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onModelSelected }) => {
     if (!success) {
       toast.error(t("onboarding.downloadFailed"));
       setSelectedModelId(null);
+      setIsSelectingModel(false);
     }
   };
 

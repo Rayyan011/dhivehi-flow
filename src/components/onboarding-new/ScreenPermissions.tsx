@@ -31,6 +31,7 @@ export const ScreenPermissions: React.FC<ScreenPermissionsProps> = ({ onNext }) 
     microphone: 'needed',
   });
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const didInitializeRef = useRef(false);
 
   useEffect(() => {
     const currentPlatform = platform();
@@ -151,6 +152,21 @@ export const ScreenPermissions: React.FC<ScreenPermissionsProps> = ({ onNext }) 
   };
 
   const allGranted = permissions.accessibility === 'granted' && permissions.microphone === 'granted';
+
+  useEffect(() => {
+    if (!allGranted || didInitializeRef.current) return;
+    didInitializeRef.current = true;
+
+    Promise.all([
+      commands.initializeEnigo(),
+      commands.initializeShortcuts(),
+      refreshAudioDevices(),
+      refreshOutputDevices(),
+    ]).catch((e) => {
+      didInitializeRef.current = false;
+      console.warn("Onboarding runtime initialization failed", e);
+    });
+  }, [allGranted, refreshAudioDevices, refreshOutputDevices]);
 
   // Baukalo pose logic
   let pose: BaukaloPose = 'fidget';

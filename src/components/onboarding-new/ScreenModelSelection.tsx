@@ -5,7 +5,6 @@ import ModelCard from "../onboarding/ModelCard";
 import { useModelStore } from "@/stores/modelStore";
 import { BaukaloCharacter } from "./BaukaloCharacter";
 import { Button } from "@/components/ui/Button";
-import type { ModelInfo } from "@/bindings";
 
 interface ScreenModelSelectionProps {
   onNext: () => void;
@@ -13,9 +12,6 @@ interface ScreenModelSelectionProps {
 
 export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNext }) => {
   const { t } = useTranslation();
-  const isMockOnboarding =
-    import.meta.env.DEV &&
-    new URLSearchParams(window.location.search).get("onboardingMock") !== "0";
   const {
     models,
     downloadModel,
@@ -28,36 +24,13 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
   
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isSelectingModel, setIsSelectingModel] = useState(false);
 
   const isDownloading = downloadingId !== null;
   const getDhivehiPreferredModel = () => models.find((m) => m.id === "whisper-small-dv");
-  const mockModel: ModelInfo = {
-    id: "whisper-small-dv",
-    name: "Whisper Small Dhivehi",
-    filename: "ggml-small-dv.bin",
-    url: null,
-    size_mb: 466,
-    is_downloaded: false,
-    is_downloading: false,
-    is_recommended: true,
-    description: t("onboardingNew.modelSelection.mockDescription"),
-    partial_size: 0,
-    is_directory: false,
-    engine_type: "Whisper",
-    accuracy_score: 86,
-    speed_score: 78,
-    supports_translation: false,
-    supported_languages: ["dv"],
-    is_custom: false,
-  };
 
   // Set initial selection
   useEffect(() => {
-      if (isMockOnboarding && !selectedId && !isDownloading) {
-          setSelectedId("whisper-small-dv");
-          return;
-      }
-
       if (!selectedId && !isDownloading) {
           const preferred = getDhivehiPreferredModel();
           if (preferred) {
@@ -67,7 +40,7 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
           const rec = models.find((m) => m.id === "whisper-small-dv");
           if (rec) setSelectedId(rec.id);
       }
-  }, [isMockOnboarding, models, selectedId, isDownloading]);
+  }, [models, selectedId, isDownloading]);
 
   // Watch for the downloading model to finish
   useEffect(() => {
@@ -77,14 +50,21 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
     const stillDownloading = downloadingId in downloadingModels;
     const stillExtracting = downloadingId in extractingModels;
 
-    if (model?.is_downloaded && !stillDownloading && !stillExtracting) {
+    if (
+      model?.is_downloaded &&
+      !stillDownloading &&
+      !stillExtracting &&
+      !isSelectingModel
+    ) {
       // Model is ready — select it and transition
+      setIsSelectingModel(true);
       selectModel(downloadingId).then((success) => {
         if (success) {
           onNext();
         } else {
           toast.error(t("onboarding.errors.selectModel"));
           setDownloadingId(null);
+          setIsSelectingModel(false);
         }
       });
     }
@@ -93,9 +73,10 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
     models,
     downloadingModels,
     extractingModels,
+    isSelectingModel,
     selectModel,
     onNext,
-    t
+    t,
   ]);
 
   const handleDownloadModel = async (modelId: string) => {
@@ -105,6 +86,7 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
     if (!success) {
       toast.error(t("onboarding.downloadFailed"));
       setDownloadingId(null);
+      setIsSelectingModel(false);
     }
   };
 
@@ -114,12 +96,6 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
 
   const handleContinue = () => {
       if (!selectedId) return;
-
-      if (isMockOnboarding) {
-        onNext();
-        return;
-      }
-
       handleDownloadModel(selectedId);
   };
 
@@ -131,9 +107,7 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
   };
 
   // On onboarding, only expose the Dhivehi Whisper model.
-  const displayModels = isMockOnboarding
-    ? [mockModel]
-    : models.filter((m) => m.id === "whisper-small-dv");
+  const displayModels = models.filter((m) => m.id === "whisper-small-dv");
 
   return (
     <div className="flex flex-col items-center h-full w-full py-5 animate-in fade-in duration-500 min-h-0">
@@ -174,9 +148,7 @@ export const ScreenModelSelection: React.FC<ScreenModelSelectionProps> = ({ onNe
           >
             {isDownloading
               ? t("onboarding.downloading")
-              : isMockOnboarding
-                ? t("onboardingNew.modelSelection.mockCta")
-                : t("onboardingNew.modelSelection.cta")}
+              : t("onboardingNew.modelSelection.cta")}
           </Button>
       </div>
     </div>
