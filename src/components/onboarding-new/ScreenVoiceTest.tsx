@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/Button";
 import { BaukaloCharacter, BaukaloPose } from "./BaukaloCharacter";
@@ -24,6 +24,9 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
   const [pressedKeys, setPressedKeys] = useState<string[]>([]);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
   const [originalBinding, setOriginalBinding] = useState("");
+  const [displayBinding, setDisplayBinding] = useState("");
+  const pressedKeysRef = useRef<string[]>([]);
+  const recordedKeysRef = useRef<string[]>([]);
 
   const currentBinding = useMemo(
     () =>
@@ -39,8 +42,9 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
       }
       return formatKeyCombination(recordedKeys.join("+"), osType);
     }
-    return formatKeyCombination(currentBinding, osType);
-  }, [currentBinding, isRecordingShortcut, osType, recordedKeys, t]);
+    const bindingToShow = displayBinding || currentBinding;
+    return formatKeyCombination(bindingToShow, osType);
+  }, [currentBinding, displayBinding, isRecordingShortcut, osType, recordedKeys, t]);
 
   const pose: BaukaloPose = "cool";
 
@@ -55,21 +59,36 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
   }, []);
 
   useEffect(() => {
+    if (!isRecordingShortcut) {
+      setDisplayBinding(currentBinding);
+    }
+  }, [currentBinding, isRecordingShortcut]);
+
+  useEffect(() => {
     if (!isRecordingShortcut) return;
 
     let cancelled = false;
+
+    const syncPressed = () => setPressedKeys([...pressedKeysRef.current]);
+    const syncRecorded = () => setRecordedKeys([...recordedKeysRef.current]);
+    const resetCaptureState = () => {
+      pressedKeysRef.current = [];
+      recordedKeysRef.current = [];
+      setPressedKeys([]);
+      setRecordedKeys([]);
+    };
 
     const handleCancel = async () => {
       if (cancelled) return;
       try {
         if (originalBinding) {
+          setDisplayBinding(originalBinding);
           await updateBinding("transcribe", originalBinding);
         }
       } finally {
         await commands.resumeBinding("transcribe").catch(console.error);
         setIsRecordingShortcut(false);
-        setPressedKeys([]);
-        setRecordedKeys([]);
+        resetCaptureState();
         setOriginalBinding("");
       }
     };
@@ -86,8 +105,14 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
       e.preventDefault();
       const key = normalizeKey(getKeyName(e, osType));
 
-      setPressedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
-      setRecordedKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+      if (!pressedKeysRef.current.includes(key)) {
+        pressedKeysRef.current = [...pressedKeysRef.current, key];
+        syncPressed();
+      }
+      if (!recordedKeysRef.current.includes(key)) {
+        recordedKeysRef.current = [...recordedKeysRef.current, key];
+        syncRecorded();
+      }
     };
 
     const handleKeyUp = async (e: KeyboardEvent) => {
@@ -95,10 +120,10 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
       e.preventDefault();
       const key = normalizeKey(getKeyName(e, osType));
 
-      const nextPressed = pressedKeys.filter((k) => k !== key);
-      setPressedKeys(nextPressed);
+      pressedKeysRef.current = pressedKeysRef.current.filter((k) => k !== key);
+      syncPressed();
 
-      if (nextPressed.length === 0 && recordedKeys.length > 0) {
+      if (pressedKeysRef.current.length === 0 && recordedKeysRef.current.length > 0) {
         const modifiers = [
           "ctrl",
           "control",
@@ -112,21 +137,22 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
           "win",
           "windows",
         ];
-        const sortedKeys = [...recordedKeys].sort((a, b) => {
+        const sortedKeys = [...recordedKeysRef.current].sort((a, b) => {
           const aIsModifier = modifiers.includes(a.toLowerCase());
           const bIsModifier = modifiers.includes(b.toLowerCase());
           if (aIsModifier && !bIsModifier) return -1;
           if (!aIsModifier && bIsModifier) return 1;
           return 0;
         });
+        const newBinding = sortedKeys.join("+");
 
         try {
-          await updateBinding("transcribe", sortedKeys.join("+"));
+          setDisplayBinding(newBinding);
+          await updateBinding("transcribe", newBinding);
         } finally {
           await commands.resumeBinding("transcribe").catch(console.error);
           setIsRecordingShortcut(false);
-          setPressedKeys([]);
-          setRecordedKeys([]);
+          resetCaptureState();
           setOriginalBinding("");
         }
       }
@@ -140,12 +166,14 @@ export const ScreenVoiceTest: React.FC<ScreenVoiceTestProps> = ({ onNext }) => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [isRecordingShortcut, osType, originalBinding, pressedKeys, recordedKeys, updateBinding]);
+  }, [isRecordingShortcut, osType, originalBinding, updateBinding]);
 
   const startShortcutRecording = async () => {
     if (isRecordingShortcut) return;
     setOriginalBinding(currentBinding);
     await commands.suspendBinding("transcribe").catch(console.error);
+    pressedKeysRef.current = [];
+    recordedKeysRef.current = [];
     setPressedKeys([]);
     setRecordedKeys([]);
     setIsRecordingShortcut(true);

@@ -5,6 +5,9 @@ pub mod transcription;
 
 use crate::settings::{get_settings, write_settings, AppSettings, LogLevel};
 use crate::utils::cancel_current_operation;
+use serde::Serialize;
+use specta::Type;
+use std::process::Command;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
 
@@ -188,4 +191,106 @@ pub fn initialize_shortcuts(app: AppHandle) -> Result<(), String> {
 
     log::info!("Shortcuts initialized successfully");
     Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct RepoMainUpdateStatus {
+    pub is_repo: bool,
+    pub current_branch: Option<String>,
+    pub target_ref: Option<String>,
+    pub ahead: u32,
+    pub behind: u32,
+    pub update_available: bool,
+    pub error: Option<String>,
+}
+
+fn run_git_capture(args: &[&str]) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(args)
+        .output()
+        .map_err(|e| format!("Failed to run git {}: {}", args.join(" "), e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let message = if !stderr.is_empty() { stderr } else { stdout };
+        return Err(if message.is_empty() {
+            format!("git {} failed", args.join(" "))
+        } else {
+            message
+        });
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn git_ref_exists(reference: &str) -> bool {
+    run_git_capture(&["rev-parse", "--verify", reference]).is_ok()
+}
+
+#[specta::specta]
+#[tauri::command]
+pub fn check_repo_main_update_status() -> RepoMainUpdateStatus {
+    let mut status = RepoMainUpdateStatus {
+        is_repo: false,
+        current_branch: None,
+        target_ref: None,
+        ahead: 0,
+        behind: 0,
+        update_available: false,
+        error: None,
+    };
+
+    match run_git_capture(&["rev-parse", "--is-inside-work-tree"]) {
+        Ok(value) if value == "true" => {
+            status.is_repo = true;
+        }
+        Ok(_) => {
+            return status;
+        }
+        Err(err) => {
+            status.error = Some(err);
+            return status;
+        }
+    }
+
+    // Best-effort fetch to keep origin/main fresh. Failures are non-fatal.
+    let _ = run_git_capture(&["fetch", "origin", "main", "--quiet"]);
+
+    status.current_branch = run_git_capture(&["rev-parse", "--abbrev-ref", "HEAD"]).ok();
+
+    let target_ref = if git_ref_exists("origin/main") {
+        "origin/main".to_string()
+    } else if git_ref_exists("main") {
+        "main".to_string()
+    } else {
+        status.error = Some("Could not find 'origin/main' or 'main' ref".to_string());
+        return status;
+    };
+
+    status.target_ref = Some(target_ref.clone());
+
+    let range_spec = format!("HEAD...{}", target_ref);
+    let counts_output = match run_git_capture(&["rev-list", "--left-right", "--count", &range_spec])
+    {
+        Ok(output) => output,
+        Err(err) => {
+            status.error = Some(err);
+            return status;
+        }
+    };
+
+    let parts: Vec<&str> = counts_output.split_whitespace().collect();
+    if parts.len() >= 2 {
+        status.ahead = parts[0].parse::<u32>().unwrap_or(0);
+        status.behind = parts[1].parse::<u32>().unwrap_or(0);
+        status.update_available = status.behind > 0;
+    } else {
+        status.error = Some(format!(
+            "Unexpected git rev-list output while checking main: '{}'",
+            counts_output
+        ));
+    }
+
+    status
 }

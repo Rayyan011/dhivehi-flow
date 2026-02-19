@@ -3,11 +3,22 @@ import { useTranslation } from "react-i18next";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { ProgressBar } from "../shared";
 import { useSettings } from "../../hooks/useSettings";
 
 interface UpdateCheckerProps {
   className?: string;
+}
+
+interface RepoMainUpdateStatus {
+  is_repo: boolean;
+  current_branch: string | null;
+  target_ref: string | null;
+  ahead: number;
+  behind: number;
+  update_available: boolean;
+  error: string | null;
 }
 
 const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
@@ -18,6 +29,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const [isInstalling, setIsInstalling] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [showUpToDate, setShowUpToDate] = useState(false);
+  const [isRepoMainMode, setIsRepoMainMode] = useState(false);
 
   const { settings, isLoading } = useSettings();
   const settingsLoaded = !isLoading && settings !== null;
@@ -27,6 +39,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   const isManualCheckRef = useRef(false);
   const downloadedBytesRef = useRef(0);
   const contentLengthRef = useRef(0);
+  const useRepoMainMode = import.meta.env.DEV;
 
   useEffect(() => {
     // Wait for settings to load before doing anything
@@ -58,11 +71,56 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
   }, [settingsLoaded, updateChecksEnabled]);
 
   // Update checking functions
+  const checkRepoMainUpdates = async (): Promise<boolean> => {
+    if (!useRepoMainMode) return false;
+
+    try {
+      const status = await invoke<RepoMainUpdateStatus>(
+        "check_repo_main_update_status",
+      );
+
+      if (!status.is_repo) {
+        setIsRepoMainMode(false);
+        return false;
+      }
+
+      setIsRepoMainMode(true);
+      setUpdateAvailable(status.update_available);
+      setIsInstalling(false);
+      setDownloadProgress(0);
+      downloadedBytesRef.current = 0;
+      contentLengthRef.current = 0;
+
+      if (!status.update_available && isManualCheckRef.current) {
+        setShowUpToDate(true);
+        if (upToDateTimeoutRef.current) {
+          clearTimeout(upToDateTimeoutRef.current);
+        }
+        upToDateTimeoutRef.current = setTimeout(() => {
+          setShowUpToDate(false);
+        }, 3000);
+      } else if (status.update_available) {
+        setShowUpToDate(false);
+      }
+
+      return true;
+    } catch (error) {
+      console.warn("Repo main update check unavailable, using app updater:", error);
+      setIsRepoMainMode(false);
+      return false;
+    }
+  };
+
   const checkForUpdates = async () => {
     if (!updateChecksEnabled || isChecking) return;
 
     try {
       setIsChecking(true);
+
+      if (await checkRepoMainUpdates()) {
+        return;
+      }
+
       const update = await check();
 
       if (update) {
@@ -97,6 +155,12 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
 
   const installUpdate = async () => {
     if (!updateChecksEnabled) return;
+    if (isRepoMainMode) {
+      // In repo-main mode, the footer button is a check action only.
+      isManualCheckRef.current = true;
+      await checkForUpdates();
+      return;
+    }
     try {
       setIsInstalling(true);
       setDownloadProgress(0);
@@ -161,6 +225,10 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
 
   const getUpdateStatusAction = () => {
     if (!updateChecksEnabled) return undefined;
+    if (isRepoMainMode) {
+      if (!isChecking && !isInstalling && !showUpToDate) return handleManualUpdateCheck;
+      return undefined;
+    }
     if (updateAvailable && !isInstalling) return installUpdate;
     if (!isChecking && !isInstalling && !updateAvailable)
       return handleManualUpdateCheck;
@@ -169,7 +237,8 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ className = "" }) => {
 
   const isUpdateDisabled = !updateChecksEnabled || isChecking || isInstalling;
   const isUpdateClickable =
-    !isUpdateDisabled && (updateAvailable || (!isChecking && !showUpToDate));
+    !isUpdateDisabled &&
+    (isRepoMainMode ? !showUpToDate : updateAvailable || (!isChecking && !showUpToDate));
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>

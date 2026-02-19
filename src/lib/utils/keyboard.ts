@@ -190,6 +190,32 @@ const formatKeyPart = (part: string): string => {
 };
 
 /**
+ * Split alternate shortcut mappings while preserving punctuation keys like
+ * `ctrl+,` where comma is the main key (not a separator).
+ */
+const splitAlternateCombinations = (value: string): string[] => {
+  const parts: string[] = [];
+  let current = "";
+  let prevChar = "";
+
+  for (const ch of value) {
+    const isSeparator = (ch === "," || ch === "|") && prevChar !== "+";
+    if (isSeparator) {
+      const trimmed = current.trim();
+      if (trimmed) parts.push(trimmed);
+      current = "";
+    } else {
+      current += ch;
+    }
+    prevChar = ch;
+  }
+
+  const finalPart = current.trim();
+  if (finalPart) parts.push(finalPart);
+  return parts;
+};
+
+/**
  * Get display-friendly key combination string for the current OS
  * Formats raw hotkey strings like "option_left+shift+space" into
  * human-readable form like "Left Option + Shift + Space"
@@ -199,7 +225,9 @@ export const formatKeyCombination = (
   _osType: OSType,
 ): string => {
   if (!combination) return "";
-  return combination.split("+").map(formatKeyPart).join(" + ");
+  return splitAlternateCombinations(combination)
+    .map((singleCombo) => singleCombo.split("+").map(formatKeyPart).join(" + "))
+    .join(" / ");
 };
 
 /**

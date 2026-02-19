@@ -308,6 +308,7 @@ pub fn run() {
         commands::check_apple_intelligence_available,
         commands::initialize_enigo,
         commands::initialize_shortcuts,
+        commands::check_repo_main_update_status,
         commands::models::get_available_models,
         commands::models::get_model_info,
         commands::models::download_model,
