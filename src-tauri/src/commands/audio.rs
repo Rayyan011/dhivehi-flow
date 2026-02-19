@@ -200,3 +200,23 @@ pub fn is_recording(app: AppHandle) -> bool {
     let audio_manager = app.state::<Arc<AudioRecordingManager>>();
     audio_manager.is_recording()
 }
+
+#[tauri::command]
+#[specta::specta]
+pub fn start_recording(app: AppHandle) -> Result<(), String> {
+    use crate::TranscriptionCoordinator;
+    let coordinator = app.state::<TranscriptionCoordinator>();
+    // Simulate press of transcribe shortcut (push-to-talk style)
+    coordinator.send_input("transcribe", "onboarding-ui", true, true);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn stop_recording(app: AppHandle) -> Result<(), String> {
+    use crate::TranscriptionCoordinator;
+    let coordinator = app.state::<TranscriptionCoordinator>();
+    // Simulate release of transcribe shortcut
+    coordinator.send_input("transcribe", "onboarding-ui", false, true);
+    Ok(())
+}

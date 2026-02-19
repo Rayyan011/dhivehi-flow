@@ -66,11 +66,7 @@ const RecordingOverlay: React.FC = () => {
   }, []);
 
   const getIcon = () => {
-    if (state === "recording") {
-      return <MicrophoneIcon />;
-    } else {
-      return <TranscriptionIcon />;
-    }
+    return <TranscriptionIcon animated={state !== "recording"} />;
   };
 
   return (
