@@ -456,16 +456,23 @@
       },
       "sourceCode": {
         "title": "ސޯސް ކޯޑް",
-        "description": "ސޯސް ކޯޑް ބައްލަވައި ކޮންޓްރިބިއުޓް ކުރައްވާ",
-        "button": "GitHub ގައި ބައްލަވާ"
+        "description": "Baukalo fork ގެ ސޯސް ކޯޑް ބައްލަވައި ކޮންޓްރިބިއުޓް ކުރައްވާ",
+        "button": "Fork GitHub ގައި ބައްލަވާ"
       },
       "supportDevelopment": {
         "title": "ތަރައްޤީއަށް އެހީވެދެއްވާ",
-        "description": "ހޭންޑީ ބިނާކުރުން ކުރިއަށް ގެންދިޔުމަށް އެހީވެދެއްވާ",
-        "button": "ޑޮނޭޓް"
+        "description": "Baukalo އަކީ CJ Pais ގެ open-source Handy ޕްރޮޖެކްޓުން fork ކުރެވިފައިވާ ކޮމިއުނިޓީ ވަރޝަނެކެވެ. އެހީދެވޭނީ އަސްލު ޕްރޮޖެކްޓަށެވެ.",
+        "button": "އަސްލު ޕްރޮޖެކްޓަށް އެހީވެދެއްވާ"
       },
       "acknowledgments": {
         "title": "ޝުކުރު",
+        "originalProject": {
+          "title": "އަސްލު ޕްރޮޖެކްޓް",
+          "description": "Baukalo އަކީ Handy އިން fork ކުރެވިފައިވާ އެޕެކެވެ.",
+          "details": "Handy ހައްދަވައި open-source ކޮށް ކޮމިއުނިޓީއަށް ލިބޭނެ ގޮތަށް ލިބިގެން ދެއްވި CJ Pais އަށް ބޮޑު ޝުކުރިއްޔާ.",
+          "projectButton": "Handy ބައްލަވާ",
+          "creatorButton": "CJ Pais ބައްލަވާ"
+        },
         "whisper": {
           "title": "Whisper.cpp",
           "description": "OpenAI ގެ Whisper އޮޓޮމެޓިކް ސްޕީޗް ރެކޮގްނިޝަން މޮޑެލްގެ ހައި-ޕަރފޯމަންސް އިންފަރެންސް",

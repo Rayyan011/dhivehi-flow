@@ -9,6 +9,11 @@ import { AppDataDirectory } from "../AppDataDirectory";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { LogDirectory } from "../debug";
 
+const SOURCE_REPO_URL = "https://github.com/Rayyan011/dhivehi-flow";
+const UPSTREAM_REPO_URL = "https://github.com/cjpais/Handy";
+const UPSTREAM_CREATOR_URL = "https://github.com/cjpais";
+const UPSTREAM_DONATE_URL = "https://handy.computer/donate";
+
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
   const [version, setVersion] = useState("");
@@ -29,7 +34,7 @@ export const AboutSettings: React.FC = () => {
 
   const handleDonateClick = async () => {
     try {
-      await openUrl("https://handy.computer/donate");
+      await openUrl(UPSTREAM_DONATE_URL);
     } catch (error) {
       console.error("Failed to open donate link:", error);
     }
@@ -66,7 +71,7 @@ export const AboutSettings: React.FC = () => {
           <Button
             variant="secondary"
             size="md"
-            onClick={() => openUrl("https://github.com/cjpais/Handy")}
+            onClick={() => openUrl(SOURCE_REPO_URL)}
           >
             {t("settings.about.sourceCode.button")}
           </Button>
@@ -85,6 +90,37 @@ export const AboutSettings: React.FC = () => {
         >
           <div className="text-sm text-mid-gray">
             {t("settings.about.acknowledgments.whisper.details")}
+          </div>
+        </SettingContainer>
+
+        <SettingContainer
+          title={t("settings.about.acknowledgments.originalProject.title")}
+          description={t(
+            "settings.about.acknowledgments.originalProject.description",
+          )}
+          grouped={true}
+          layout="stacked"
+        >
+          <div className="space-y-3">
+            <div className="text-sm text-mid-gray">
+              {t("settings.about.acknowledgments.originalProject.details")}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => openUrl(UPSTREAM_REPO_URL)}
+              >
+                {t("settings.about.acknowledgments.originalProject.projectButton")}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => openUrl(UPSTREAM_CREATOR_URL)}
+              >
+                {t("settings.about.acknowledgments.originalProject.creatorButton")}
+              </Button>
+            </div>
           </div>
         </SettingContainer>
       </SettingsGroup>

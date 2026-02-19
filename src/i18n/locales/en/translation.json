@@ -528,16 +528,23 @@
       },
       "sourceCode": {
         "title": "Source Code",
-        "description": "View source code and contribute",
-        "button": "View on GitHub"
+        "description": "View the Baukalo fork source code and contribute",
+        "button": "View Fork on GitHub"
       },
       "supportDevelopment": {
         "title": "Support Development",
-        "description": "Help us continue building Baukalo",
-        "button": "Donate"
+        "description": "Baukalo is a community fork of the open-source Handy project by CJ Pais. Support goes to the original project.",
+        "button": "Support Original Project"
       },
       "acknowledgments": {
         "title": "Acknowledgments",
+        "originalProject": {
+          "title": "Original Project",
+          "description": "Baukalo is forked from Handy.",
+          "details": "Thanks to CJ Pais for creating and open-sourcing Handy for the community.",
+          "projectButton": "View Handy",
+          "creatorButton": "View CJ Pais"
+        },
         "whisper": {
           "title": "Whisper.cpp",
           "description": "High-performance inference of OpenAI's Whisper automatic speech recognition model",
