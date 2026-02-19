@@ -39,9 +39,9 @@ fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<Header
     headers.insert(REFERER, HeaderValue::from_static("https://github.com"));
     headers.insert(
         USER_AGENT,
-        HeaderValue::from_static("DhivehiFlow/1.0 (+https://github.com)"),
+        HeaderValue::from_static("Baukalo/1.0 (+https://github.com)"),
     );
-    headers.insert("X-Title", HeaderValue::from_static("Dhivehi Flow"));
+    headers.insert("X-Title", HeaderValue::from_static("Baukalo"));
 
     // Provider-specific auth headers
     if !api_key.is_empty() {

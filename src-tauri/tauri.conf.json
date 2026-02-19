@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Dhivehi Flow",
+  "productName": "Baukalo",
   "version": "0.7.5",
   "identifier": "com.pais.handy",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Dhivehi Flow",
+        "title": "Baukalo",
         "width": 680,
         "height": 570,
         "minWidth": 680,

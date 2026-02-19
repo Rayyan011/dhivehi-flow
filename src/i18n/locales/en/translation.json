@@ -139,7 +139,7 @@
     },
     "permissions": {
       "title": "Permissions Required",
-      "description": "Dhivehi Flow needs a couple of permissions to work properly.",
+      "description": "Baukalo needs a couple of permissions to work properly.",
       "microphone": {
         "title": "Microphone Access",
         "description": "Required to hear your voice for transcription."
@@ -195,7 +195,7 @@
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Dhivehi Flow Shortcuts",
+        "title": "Baukalo Shortcuts",
         "description": "Configure keyboard shortcuts to trigger speech-to-text recording",
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
@@ -294,11 +294,11 @@
       },
       "autostart": {
         "label": "Launch on Startup",
-        "description": "Automatically start Dhivehi Flow when you log in to your computer."
+        "description": "Automatically start Baukalo when you log in to your computer."
       },
       "showTrayIcon": {
         "label": "Show Tray Icon",
-        "description": "Display the Dhivehi Flow icon in the system tray."
+        "description": "Display the Baukalo icon in the system tray."
       },
       "overlay": {
         "title": "Overlay Position",
@@ -456,7 +456,7 @@
       },
       "updateChecks": {
         "label": "Check for Updates",
-        "description": "Automatically check for new versions of Dhivehi Flow"
+        "description": "Automatically check for new versions of Baukalo"
       },
       "soundTheme": {
         "label": "Sound Theme",
@@ -520,11 +520,11 @@
       "title": "About",
       "version": {
         "title": "Version",
-        "description": "Current version of Dhivehi Flow"
+        "description": "Current version of Baukalo"
       },
       "appDataDirectory": {
         "title": "App Data Directory",
-        "description": "Location where Dhivehi Flow stores its data"
+        "description": "Location where Baukalo stores its data"
       },
       "sourceCode": {
         "title": "Source Code",
@@ -533,7 +533,7 @@
       },
       "supportDevelopment": {
         "title": "Support Development",
-        "description": "Help us continue building Dhivehi Flow",
+        "description": "Help us continue building Baukalo",
         "button": "Donate"
       },
       "acknowledgments": {
@@ -541,7 +541,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "High-performance inference of OpenAI's Whisper automatic speech recognition model",
-          "details": "Dhivehi Flow uses Whisper.cpp for fast, local speech-to-text processing. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "details": "Baukalo uses Whisper.cpp for fast, local speech-to-text processing. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
       }
     }
@@ -584,7 +584,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Accessibility Permissions Required",
-    "permissionsDescription": "Dhivehi Flow needs accessibility permissions to type transcribed text.",
+    "permissionsDescription": "Baukalo needs accessibility permissions to type transcribed text.",
     "openSettings": "Open System Settings",
     "dismiss": "Dismiss"
   },
@@ -598,7 +598,7 @@
   },
   "appLanguage": {
     "title": "Application Language",
-    "description": "Change the language of the Dhivehi Flow interface"
+    "description": "Change the language of the Baukalo interface"
   },
   "overlay": {
     "transcribing": "Transcribing...",

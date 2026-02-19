@@ -1,7 +1,7 @@
 [package]
 name = "handy"
 version = "0.7.5"
-description = "Dhivehi Flow"
+description = "Baukalo"
 authors = ["cjpais"]
 edition = "2021"
 license = "MIT"
