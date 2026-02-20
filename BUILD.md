@@ -67,3 +67,18 @@ bun install
 ```bash
 bun tauri dev
 ```
+
+## Building for release (signed updates)
+
+Baukalo uses Tauri's updater to allow users to receive updates securely. To build with signed updater artifacts:
+
+1. **Set the private key** (keys were generated to `~/.tauri/baukalo.key`):
+
+   ```bash
+   export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/baukalo.key)"
+   bun run tauri build
+   ```
+
+2. **Back up your private key** – store `~/.tauri/baukalo.key` somewhere safe. If you lose it, you cannot sign new updates for users who have the app installed.
+
+3. **Publishing updates**: After each release, upload the generated files from `src-tauri/target/release/bundle/macos/` (or `dmg/`) to your GitHub release, and create a `latest.json` file in the format expected by [Tauri's updater](https://v2.tauri.app/plugin/updater/).

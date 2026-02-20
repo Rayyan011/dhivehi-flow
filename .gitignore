@@ -38,3 +38,6 @@ blob-report/
 .direnv
 .envrc
 whisperkit-sidecar/.build/
+
+# Signing keys backup (never commit)
+.signing-keys-backup/
