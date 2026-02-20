@@ -610,8 +610,8 @@ impl TranscriptionManager {
 
             match engine {
                 LoadedEngine::Whisper(whisper_engine) => {
-                    // Normalize language code for Whisper
-                    // Convert zh-Hans and zh-Hant to zh since Whisper uses ISO 639-1 codes
+                    let is_dhivehi = settings.selected_language == "dv";
+
                     let whisper_language = if settings.selected_language == "auto" {
                         None
                     } else {
@@ -619,6 +619,8 @@ impl TranscriptionManager {
                             || settings.selected_language == "zh-Hant"
                         {
                             "zh".to_string()
+                        } else if is_dhivehi {
+                            "si".to_string()
                         } else {
                             settings.selected_language.clone()
                         };
@@ -629,6 +631,7 @@ impl TranscriptionManager {
                         language: whisper_language,
                         translate: settings.translate_to_english,
                         no_speech_thold: 0.6,
+                        entropy_thold: if is_dhivehi { Some(0.0) } else { None },
                         ..Default::default()
                     };
 
