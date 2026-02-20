@@ -518,6 +518,7 @@
     },
     "about": {
       "title": "About",
+      "projectOf": "A project of Maldives Innovation and Digital Company",
       "version": {
         "title": "Version",
         "description": "Current version of Baukalo"

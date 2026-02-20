@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
-import { Button } from "../../ui/Button";
 import { AppDataDirectory } from "../AppDataDirectory";
 import { AppLanguageSelector } from "../AppLanguageSelector";
 import { LogDirectory } from "../debug";
-
-const SOURCE_REPO_URL = "https://github.com/Rayyan011/dhivehi-flow";
-const UPSTREAM_REPO_URL = "https://github.com/cjpais/Handy";
-const UPSTREAM_CREATOR_URL = "https://github.com/cjpais";
-const UPSTREAM_DONATE_URL = "https://handy.computer/donate";
 
 export const AboutSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -32,14 +25,6 @@ export const AboutSettings: React.FC = () => {
     fetchVersion();
   }, []);
 
-  const handleDonateClick = async () => {
-    try {
-      await openUrl(UPSTREAM_DONATE_URL);
-    } catch (error) {
-      console.error("Failed to open donate link:", error);
-    }
-  };
-
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
       <SettingsGroup title={t("settings.about.title")}>
@@ -52,78 +37,15 @@ export const AboutSettings: React.FC = () => {
           {/* eslint-disable-next-line i18next/no-literal-string */}
           <span className="text-sm font-mono">v{version}</span>
         </SettingContainer>
-
-        <SettingContainer
-          title={t("settings.about.supportDevelopment.title")}
-          description={t("settings.about.supportDevelopment.description")}
-          grouped={true}
-        >
-          <Button variant="primary" size="md" onClick={handleDonateClick}>
-            {t("settings.about.supportDevelopment.button")}
-          </Button>
-        </SettingContainer>
-
-        <SettingContainer
-          title={t("settings.about.sourceCode.title")}
-          description={t("settings.about.sourceCode.description")}
-          grouped={true}
-        >
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => openUrl(SOURCE_REPO_URL)}
-          >
-            {t("settings.about.sourceCode.button")}
-          </Button>
-        </SettingContainer>
-
         <AppDataDirectory descriptionMode="tooltip" grouped={true} />
         <LogDirectory grouped={true} />
       </SettingsGroup>
 
-      <SettingsGroup title={t("settings.about.acknowledgments.title")}>
-        <SettingContainer
-          title={t("settings.about.acknowledgments.whisper.title")}
-          description={t("settings.about.acknowledgments.whisper.description")}
-          grouped={true}
-          layout="stacked"
-        >
-          <div className="text-sm text-mid-gray">
-            {t("settings.about.acknowledgments.whisper.details")}
-          </div>
-        </SettingContainer>
-
-        <SettingContainer
-          title={t("settings.about.acknowledgments.originalProject.title")}
-          description={t(
-            "settings.about.acknowledgments.originalProject.description",
-          )}
-          grouped={true}
-          layout="stacked"
-        >
-          <div className="space-y-3">
-            <div className="text-sm text-mid-gray">
-              {t("settings.about.acknowledgments.originalProject.details")}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => openUrl(UPSTREAM_REPO_URL)}
-              >
-                {t("settings.about.acknowledgments.originalProject.projectButton")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => openUrl(UPSTREAM_CREATOR_URL)}
-              >
-                {t("settings.about.acknowledgments.originalProject.creatorButton")}
-              </Button>
-            </div>
-          </div>
-        </SettingContainer>
-      </SettingsGroup>
+      <div className="flex items-center justify-center pt-2 pb-4">
+        <p className="text-xs text-mid-gray/70 tracking-wide">
+          {t("settings.about.projectOf")}
+        </p>
+      </div>
     </div>
   );
 };
