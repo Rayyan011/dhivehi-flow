@@ -80,6 +80,7 @@
     "cancel": "Cancel"
   },
   "sidebar": {
+    "dashboard": "Dashboard",
     "general": "General",
     "models": "Models",
     "advanced": "Advanced",
@@ -87,6 +88,39 @@
     "history": "History",
     "debug": "Debug",
     "about": "About"
+  },
+  "dashboard": {
+    "loading": "Loading dashboard...",
+    "hero": {
+      "title": "You have saved {{seconds}} seconds with {{appName}}",
+      "subtitle": "Dictated {{words}} words across {{sessions}} sessions."
+    },
+    "cards": {
+      "sessions": {
+        "title": "Sessions Recorded",
+        "description": "Baukalo sessions completed"
+      },
+      "words": {
+        "title": "Words Dictated",
+        "description": "words generated"
+      },
+      "wpm": {
+        "title": "Words Per Minute",
+        "description": "estimated speaking rate"
+      },
+      "keystrokes": {
+        "title": "Keystrokes Saved",
+        "description": "fewer keystrokes"
+      }
+    },
+    "resources": {
+      "title": "Help & Resources",
+      "items": {
+        "recommendedModels": "Recommended Models",
+        "youtubeGuides": "YouTube Videos & Guides",
+        "documentation": "Documentation"
+      }
+    }
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",

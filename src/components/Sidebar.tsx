@@ -1,8 +1,18 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Cog, FlaskConical, History, Home, Info, Sparkles, Cpu } from "lucide-react";
+import {
+  BarChart3,
+  Cog,
+  Cpu,
+  FlaskConical,
+  History,
+  Home,
+  Info,
+  Sparkles,
+} from "lucide-react";
 import HandyTextLogo from "./icons/HandyTextLogo";
 import { useSettings } from "../hooks/useSettings";
+import { Dashboard } from "./dashboard";
 import {
   GeneralSettings,
   AdvancedSettings,
@@ -31,6 +41,12 @@ interface SectionConfig {
 }
 
 export const SECTIONS_CONFIG = {
+  dashboard: {
+    labelKey: "sidebar.dashboard",
+    icon: BarChart3,
+    component: Dashboard,
+    enabled: () => true,
+  },
   general: {
     labelKey: "sidebar.general",
     icon: Home,
