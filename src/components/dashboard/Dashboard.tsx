@@ -180,11 +180,6 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="max-w-3xl w-full mx-auto space-y-4">
       <section>
-        <div className="px-4">
-          <h2 className="text-xs font-medium text-mid-gray uppercase tracking-wide">
-            {t("sidebar.dashboard")}
-          </h2>
-        </div>
         <div className="rounded-lg bg-logo-primary px-5 py-4 text-text">
           <h1 className="text-xl font-semibold leading-tight md:text-2xl">
             {t("dashboard.hero.title", {
