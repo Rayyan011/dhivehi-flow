@@ -60,6 +60,10 @@ html[lang^="dv"] body * {
     sans-serif;
 }
 
+html[lang^="dv"] {
+  font-size: 16px;
+}
+
 .container {
   margin: 0;
   padding-top: 10vh;
